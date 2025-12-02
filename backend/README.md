@@ -75,3 +75,43 @@ Successful registration (`201 Created`):
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
+
+## Users API — `POST /users/login`
+
+Description
+- Authenticates an existing user and returns an authentication token.
+
+Endpoint
+- Method: `POST`
+- Path: `/users/login`
+- Content-Type: `application/json`
+
+Request body (JSON)
+```json
+{
+  "email": "john@example.com",
+  "password": "secret123"
+}
+```
+
+Validation rules (implemented in `routes/user.routes.js`)
+- `email`: must be a valid email (`express-validator` `.isEmail()`)
+- `password`: minimum length 6
+
+Responses
+- `200 OK` — successful login. Typical shape: `{ user, token }`.
+  - `user` may be the user object (password is not returned because `password.select` is false in schema).
+  - `token` is a JWT signed with `process.env.JWT_SECRET` (see `models/user.model.js`).
+- `400 Bad Request` — validation errors (`{ errors: [...] }`).
+- `401 Unauthorized` — invalid credentials (incorrect email or password).
+- `5xx` — unexpected server errors.
+
+Implementation notes
+- The route is registered in `routes/user.routes.js` and calls `userController.loginUser`. The `user.model.js` exposes `comparePassword` and `generateAuthToken` which are typically used by the controller to verify credentials and issue a token.
+
+Quick test (curl)
+```bash
+curl -X POST http://localhost:3000/users/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"secret123"}'
+```
