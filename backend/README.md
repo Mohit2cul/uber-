@@ -173,3 +173,122 @@ Quick test (curl)
 curl -X GET http://localhost:3000/users/logout \
   -H "Authorization: Bearer <your_jwt_token>"
 ```
+
+# Captains API — `POST /captains/register`
+
+Description
+- Creates a new captain account (driver) and returns an authentication token.
+
+Files
+- Route: `routes/captain.routes.js`
+- Controller: `controllers/captain.controller.js`
+- Service: `services/captain.service.js`
+- Model: `models/captain.model.js`
+
+Endpoint
+- Method: `POST`
+- Path: `/captains/register`
+- Content-Type: `application/json`
+
+Request body (JSON)
+```json
+{
+  "fullname": { 
+    "firstname": "Jane", 
+    "lastname": "Smith" 
+  },
+  "email": "jane@example.com",
+  "password": "secret123",
+  "vehicle": {
+    "color": "Black",
+    "plate": "ABC123",
+    "capacity": 4,
+    "vehicleType": "car"
+  }
+}
+```
+
+Validation rules (implemented in `routes/captain.routes.js`)
+- `email`: must be a valid email (`express-validator` `.isEmail()`)
+- `fullname.firstname`: minimum length 3
+- `password`: minimum length 6
+- `vehicle.color`: minimum length 3
+- `vehicle.plate`: minimum length 3
+- `vehicle.capacity`: must be an integer with minimum value 1
+- `vehicle.vehicleType`: must be one of: `car`, `bike`, `auto`
+
+Responses
+- `201 Created` — successful registration. Response body: `{ token, captain }`.
+  - `captain` is the saved captain object (note: `password` is `select: false` in the schema, so it won't be returned).
+  - `token` is a JWT generated with `process.env.JWT_SECRET` (see `models/captain.model.js`).
+- `400 Bad Request` — validation errors. Shape: `{ errors: [ ... ] }` returned from `express-validator`.
+- `409 Conflict` — captain with this email already exists. Shape: `{ message: "Captain with this email already exists" }`.
+- `5xx` — unexpected server errors.
+
+Implementation notes / gotchas
+- Password hashing: `captainModel.hashPassword` (in `models/captain.model.js`) is used in the controller before creating the captain.
+- Token: created by `captain.generateAuthToken()` (uses `jwt.sign` with `JWT_SECRET`). Ensure `JWT_SECRET` is set in `.env` for development.
+- DB connection: ensure `DB_CONNECT` or `MONGO_URI` env var is set and is a valid MongoDB URI (`mongodb://` or `mongodb+srv://`).
+- Unlike user registration, this endpoint returns a `409 Conflict` status for duplicate emails.
+
+Quick test (curl)
+```bash
+curl -X POST http://localhost:3000/captains/register \
+  -H "Content-Type: application/json" \
+  -d '{"fullname":{"firstname":"Jane","lastname":"Smith"},"email":"jane@example.com","password":"secret123","vehicle":{"color":"Black","plate":"ABC123","capacity":4,"vehicleType":"car"}}'
+```
+
+## Example Response
+
+Successful registration (`201 Created`):
+
+```json
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "captain": {
+        "_id": "60f7c2b8e1d3c2a5f8e4b456",
+        "fullname": {
+            "firstname": "Jane",
+            "lastname": "Smith"
+        },
+        "email": "jane@example.com",
+        "vehicle": {
+            "color": "Black",
+            "plate": "ABC123",
+            "capacity": 4,
+            "vehicleType": "car"
+        },
+        "status": "inactive"
+        // other captain fields, excluding password
+    }
+}
+```
+
+## Captains API — `POST /captains/login`
+
+Description
+- Authenticates an existing captain and returns an authentication token.
+- **Note:** This endpoint is currently a placeholder and returns `501 Not Implemented`.
+
+Endpoint
+- Method: `POST`
+- Path: `/captains/login`
+- Content-Type: `application/json`
+
+Request body (JSON)
+```json
+{
+  "email": "jane@example.com",
+  "password": "secret123"
+}
+```
+
+Responses
+- `501 Not Implemented` — endpoint is not yet implemented. Response body: `{ message: "Not implemented" }`.
+
+Quick test (curl)
+```bash
+curl -X POST http://localhost:3000/captains/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"jane@example.com","password":"secret123"}'
+```
