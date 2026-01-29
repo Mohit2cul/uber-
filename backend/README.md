@@ -115,3 +115,61 @@ curl -X POST http://localhost:3000/users/login \
   -H "Content-Type: application/json" \
   -d '{"email":"john@example.com","password":"secret123"}'
 ```
+
+## Users API — `GET /users/profile`
+
+Description
+- Retrieves the authenticated user's profile information.
+
+Endpoint
+- Method: `GET`
+- Path: `/users/profile`
+
+Authentication
+- Required: Yes
+- Method: Bearer token in Authorization header or token cookie
+
+Responses
+- `200 OK` — successful retrieval. Response body: `{ user }`.
+  - `user` is the authenticated user object.
+- `401 Unauthorized` — no valid authentication token provided.
+- `5xx` — unexpected server errors.
+
+Implementation notes
+- Requires authentication via `authMiddleware.authUser`.
+- The user object is attached to `req.user` by the auth middleware.
+
+Quick test (curl)
+```bash
+curl -X GET http://localhost:3000/users/profile \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+## Users API — `GET /users/logout`
+
+Description
+- Logs out the authenticated user by invalidating their token.
+
+Endpoint
+- Method: `GET`
+- Path: `/users/logout`
+
+Authentication
+- Required: Yes
+- Method: Bearer token in Authorization header or token cookie
+
+Responses
+- `200 OK` — successful logout. Response body: `{ message: "Logged out successfully" }`.
+- `401 Unauthorized` — no valid authentication token provided.
+- `5xx` — unexpected server errors.
+
+Implementation notes
+- Requires authentication via `authMiddleware.authUser`.
+- Clears the `token` cookie.
+- Adds the token to the blacklist collection to prevent reuse.
+
+Quick test (curl)
+```bash
+curl -X GET http://localhost:3000/users/logout \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
