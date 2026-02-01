@@ -31,29 +31,9 @@ Validation rules (implemented in `routes/user.routes.js`)
 Responses
 - `201 Created` — successful registration. Response body: `{ user, token }`.
   - `user` is the saved user object (note: `password` is `select: false` in the schema, so it won't be returned).
-  - `token` is a JWT generated with `process.env.JWT_SECRET` (see `models/user.model.js`).
-- `400 Bad Request` — validation errors. Shape: `{ errors: [ ... ] }` returned from `express-validator` (see `user.controller.js`).
-- `5xx` — unexpected server errors (e.g. DB unique constraint failure or other exceptions). The project doesn't currently return a custom 409 for duplicate emails.
-
-Implementation notes / gotchas
-- Password hashing: `userModel.hashPassword` (in `models/user.model.js`) is used in the controller before creating the user.
-- Token: created by `user.generateAuthToken()` (uses `jwt.sign` with `JWT_SECRET`). Ensure `JWT_SECRET` is set in `.env` for development.
 - DB connection: ensure `DB_CONNECT` or `MONGO_URI` env var is set and is a valid MongoDB URI (`mongodb://` or `mongodb+srv://`).
-
-Quick test (curl)
-```bash
 curl -X POST http://localhost:3000/users/register \
-  -H "Content-Type: application/json" \
-  -d '{"fullname":{"firstname":"John","lastname":"Doe"},"email":"john@example.com","password":"secret123"}'
-```
 
-Run server (from `backend` folder)
-```bash
-npm install
-node server.js
-# or with nodemon
-npx nodemon server.js
-```
 
 If anything is unclear or you want the README expanded (examples for error responses, sample tests, or a Postman collection), tell me which additions you want.
 
@@ -64,7 +44,6 @@ Successful registration (`201 Created`):
 ```json
 {
     "user": {
-        "_id": "60f7c2b8e1d3c2a5f8e4b123",
         "fullname": {
             "firstname": "John",
             "lastname": "Doe"
@@ -72,6 +51,85 @@ Successful registration (`201 Created`):
         "email": "john@example.com"
         // other user fields, excluding password
     },
+
+Description
+- Authenticates an existing captain and returns an authentication token.
+
+Endpoint
+- Method: `POST`
+- Path: `/captains/login`
+- Content-Type: `application/json`
+
+Request body (JSON)
+```json
+{
+  "email": "jane@example.com",      // Required: valid email format
+  "password": "secret123"           // Required: min 6 characters
+}
+```
+
+Validation rules (implemented in `routes/captain.routes.js`)
+- `email`: must be a valid email (`express-validator` `.isEmail()`)
+- `password`: minimum length 6
+
+Responses
+
+**Success (`200 OK`):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "captain": {
+    "_id": "60f7c2b8e1d3c2a5f8e4b456",
+    "fullname": {
+      "firstname": "Jane",
+      "lastname": "Smith"
+    },
+    "email": "jane@example.com",
+    "vehicle": {
+      "color": "Black",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "status": "inactive"
+  }
+}
+```
+
+**Validation Error (`400 Bad Request`):**
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "",
+      "msg": "Invalid email address",
+      "path": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+**Invalid Credentials (`401 Unauthorized`):**
+```json
+{
+  "message": "Invalid email or password"
+}
+```
+
+Implementation notes
+- Token is set as a cookie (key: `token`) in the response
+- Token is also returned in response body for client-side storage if needed
+- The captain object returned excludes the password field (`select: false` in schema)
+- Token is signed with `process.env.JWT_SECRET` (see `models/captain.model.js`)
+
+Quick test (curl)
+```bash
+curl -X POST http://localhost:4000/captains/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"jane@example.com","password":"secret123"}'
+```
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
@@ -85,7 +143,91 @@ Endpoint
 - Method: `POST`
 - Path: `/users/login`
 - Content-Type: `application/json`
+Request body (JSON)
+```json
+{
+  "fullname": { 
+    "firstname": "Jane",           // Required: min 3 characters
+    "lastname": "Smith"            // Optional
+  },
+  "email": "jane@example.com",     // Required: valid email format
+  "password": "secret123",         // Required: min 6 characters
+  "vehicle": {
+    "color": "Black",              // Required: min 3 characters
+    "plate": "ABC123",             // Required: min 3 characters
+    "capacity": 4,                 // Required: integer, min value 1
+    "vehicleType": "car"           // Required: one of ['car', 'bike', 'auto']
+  }
+}
+```
 
+Validation rules (implemented in `routes/captain.routes.js`)
+- `email`: must be a valid email (`express-validator` `.isEmail()`)
+- `fullname.firstname`: minimum length 3
+- `password`: minimum length 6
+- `vehicle.color`: minimum length 3
+- `vehicle.plate`: minimum length 3
+- `vehicle.capacity`: must be an integer with minimum value 1
+- `vehicle.vehicleType`: must be one of: `car`, `bike`, `auto`
+
+Responses
+
+**Success (`201 Created`):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "captain": {
+    "_id": "60f7c2b8e1d3c2a5f8e4b456",
+    "fullname": {
+      "firstname": "Jane",
+      "lastname": "Smith"
+    },
+    "email": "jane@example.com",
+    "vehicle": {
+      "color": "Black",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "status": "inactive"
+  }
+}
+```
+
+**Validation Error (`400 Bad Request`):**
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "invalid-email",
+      "msg": "Invalid email address",
+      "path": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+**Duplicate Email (`409 Conflict`):**
+```json
+{
+  "message": "Captain with this email already exists"
+}
+```
+
+Implementation notes / gotchas
+- Password hashing: `captainModel.hashPassword` (in `models/captain.model.js`) is used in the controller before creating the captain.
+- Token: created by `captain.generateAuthToken()` (uses `jwt.sign` with `JWT_SECRET`). Ensure `JWT_SECRET` is set in `.env` for development.
+- DB connection: ensure `DB_CONNECT` or `MONGO_URI` env var is set and is a valid MongoDB URI (`mongodb://` or `mongodb+srv://`).
+- Unlike user registration, this endpoint returns a `409 Conflict` status for duplicate emails.
+
+Quick test (curl)
+```bash
+curl -X POST http://localhost:4000/captains/register \
+  -H "Content-Type: application/json" \
+  -d '{"fullname":{"firstname":"Jane","lastname":"Smith"},"email":"jane@example.com","password":"secret123","vehicle":{"color":"Black","plate":"ABC123","capacity":4,"vehicleType":"car"}}'
+```
 Request body (JSON)
 ```json
 {
