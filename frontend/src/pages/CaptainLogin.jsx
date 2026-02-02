@@ -24,7 +24,7 @@ const CaptainLogin = () => {
       <div>
         <img className='ml-5 lg:w-[10%] mt-6 h-[6%] w-[30%]' src={logo} alt="Uber Logo" />
         <form onSubmit={submitHandler} className='flex flex-col p-7 lg:w-[40%] w-full mx-auto bg-[#f7f7f7] '>
-          <h3 className='text-2xl font-semibold mb-2 mt-8'>What's your Email?</h3>
+          <h3 className='text-2xl font-semibold mb-2 mt-8'>What's our Captain's Email?</h3>
           <input className='mb-4 py-2 px-3 rounded-md w-full text-lg border-[2px] solid black' type="email" placeholder="email@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
           <h3 className='text-2xl font-semibold mb-2'>Password</h3>
           <input className='mb-4 py-2 px-3  rounded-md w-full text-lg border-[2px] solid black' type="password" placeholder="Password" required value={password} onChange={(e) => setPassword(e.target.value)} />
