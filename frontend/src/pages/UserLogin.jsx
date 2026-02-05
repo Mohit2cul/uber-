@@ -1,19 +1,27 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import logo from '../../public/Uber_logo_2018.png'
-import { Link } from 'react-router-dom'
-
+import { Link, useNavigate } from 'react-router-dom'
+import { UserDataContext } from '../context/UserContext.jsx'
+import axios from 'axios'
 
 const UserLogin = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [userData, setUserData] = useState({})
 
+  const { user, setUser } = useContext(UserDataContext);
+  const navigate = useNavigate();
+
   const submitHandler = (e) => {
     e.preventDefault()
-    setUserData({
+    const userData = {
       email: email,
       password: password
-    })
+    }
+    // setUserData({
+    //   email: email,
+    //   password: password
+    // })
     // console.log(userData);
     
     setEmail('')
