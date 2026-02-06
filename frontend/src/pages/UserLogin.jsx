@@ -12,7 +12,7 @@ const UserLogin = () => {
   const { user, setUser } = useContext(UserDataContext);
   const navigate = useNavigate();
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault()
     const userData = {
       email: email,
@@ -23,7 +23,13 @@ const UserLogin = () => {
     //   password: password
     // })
     // console.log(userData);
-    
+    const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/users/login`, userData)
+    if (response.status === 200) {
+      const data = response.data;
+      setUser(data.user);
+      localStorage.setItem('token', data.token);
+      navigate('/home');
+    }
     setEmail('')
     setPassword('')
   }
